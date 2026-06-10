@@ -55,3 +55,6 @@ evaluation/results/
 # Logs
 *.log
 logs/
+
+# Markdown documentation
+*.md

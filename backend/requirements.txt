@@ -1,8 +1,8 @@
 # ── Core Framework ─────────────────────────────────────────────────────────
 fastapi==0.111.0
 uvicorn[standard]==0.30.1
-pydantic==2.7.0
-pydantic-settings==2.3.0
+pydantic>=2.7.4,<3.0.0
+pydantic-settings>=2.3.0,<3.0.0
 
 # ── Database ───────────────────────────────────────────────────────────────
 sqlalchemy[asyncio]==2.0.30

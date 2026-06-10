@@ -1,5 +1,3 @@
-version: "3.9"
-
 # ─────────────────────────────────────────────────
 #  HR Assistant — Docker Compose
 #  Run: docker compose up --build

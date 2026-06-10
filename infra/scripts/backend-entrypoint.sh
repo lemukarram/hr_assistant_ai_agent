@@ -25,7 +25,7 @@ done
 echo "✅ ChromaDB ready"
 
 # ── Wait for LLM API ───────────────────────────────────────────────────────
-LLM_BASE="${LLM_BASE_URL:-http://api-services-ca-llm.igate.sa:4000/v1}"
+LLM_BASE="${LLM_BASE_URL:-http://localhost:4000/v1}"
 echo "⏳ Waiting for LLM API at ${LLM_BASE}..."
 until curl -sf "${LLM_BASE}/models" \
     -H "Authorization: Bearer ${LLM_API_KEY}" > /dev/null 2>&1; do
