@@ -1,0 +1,50 @@
+{
+  "app": {
+    "name": "HR Assistant",
+    "tagline": "Your intelligent HR companion"
+  },
+  "auth": {
+    "login": "Login",
+    "logout": "Logout",
+    "email": "Email",
+    "password": "Password",
+    "loginButton": "Sign In",
+    "loginError": "Invalid email or password",
+    "loggingIn": "Signing in..."
+  },
+  "chat": {
+    "title": "HR Assistant",
+    "subtitle": "Powered by AI",
+    "welcome": "Hello {{name}}! 👋",
+    "welcomeSub": "Ask me about your leave, payslips, policies, or org chart.",
+    "logout": "Log Out",
+    "streamError": "An error occurred while processing. Please try again.",
+    "placeholder": "Ask me anything... e.g. What is my leave balance?",
+    "send": "Send",
+    "newChat": "New Chat",
+    "thinking": "Processing...",
+    "errorMessage": "An error occurred. Please try again.",
+    "source": "Source",
+    "page": "Page",
+    "toolUsed": "Tool used",
+    "disclaimer": "Answers may not always be accurate. Verify with HR for important decisions.",
+    "welcomeTitle": "Welcome to HR Assistant",
+    "welcomeSubtitle": "I can help you with leave balance, payslips, company policies, org chart, and more.",
+    "suggestions": {
+      "leave": "What is my leave balance?",
+      "salary": "Show me my latest payslip",
+      "policy": "What is the remote work policy?",
+      "org": "Who is my direct manager?"
+    }
+  },
+  "sidebar": {
+    "history": "Chat History",
+    "profile": "My Profile",
+    "settings": "Settings"
+  },
+  "language": {
+    "ar": "العربية",
+    "en": "English",
+    "toggle": "Switch Language"
+  }
+}

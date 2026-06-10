@@ -1,0 +1,57 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+.eggs/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+htmlcov/
+.coverage
+*.cover
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Environment files
+.env
+!.env.example
+
+# Node
+node_modules/
+frontend/dist/
+frontend/.vite/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Data / model cache
+data/chroma_db/
+*.pkl
+*.bin
+
+# Ollama models (large, downloaded at runtime)
+models/
+
+# Evaluation results (generated)
+evaluation/results/
+
+# macOS
+.DS_Store
+
+# Docker
+*.tar
+
+# Logs
+*.log
+logs/

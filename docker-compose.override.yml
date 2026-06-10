@@ -1,0 +1,44 @@
+version: "3.9"
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  Development overrides — source-code hot-reload, direct port exposure.
+#  Usage:
+#    docker compose -f docker-compose.yml -f docker-compose.override.yml up
+#  Or simply: make dev
+# ─────────────────────────────────────────────────────────────────────────────
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: ../infra/docker/Dockerfile.backend
+      target: development
+    volumes:
+      - ./backend:/app:cached
+    environment:
+      ENVIRONMENT: development
+      LOG_LEVEL: DEBUG
+    command: >
+      uvicorn app.main:app
+      --host 0.0.0.0
+      --port 8000
+      --reload
+      --reload-dir /app/app
+      --log-level debug
+    ports:
+      - "8000:8000"
+
+  mcp-server:
+    volumes:
+      - ./backend:/app:cached
+    environment:
+      ENVIRONMENT: development
+    command: python -m app.mcp_tools.server
+
+  frontend:
+    volumes:
+      - ./frontend/src:/app/src:cached
+      - ./frontend/public:/app/public:cached
+    ports:
+      - "5173:5173"
+    command: npm run dev -- --host 0.0.0.0

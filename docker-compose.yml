@@ -1,0 +1,186 @@
+version: "3.9"
+
+# ─────────────────────────────────────────────────
+#  HR Assistant — Docker Compose
+#  Run: docker compose up --build
+#  First run: ~20 min (model pull + RAG indexing)
+# ─────────────────────────────────────────────────
+
+x-logging: &default-logging
+  driver: "json-file"
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+networks:
+  hr-net:
+    driver: bridge
+
+volumes:
+  postgres_data:
+    name: hr_postgres_data
+  chroma_data:
+    name: hr_chroma_data
+  bge_models:
+    name: hr_bge_models
+
+services:
+  # ─── Database ─────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: hr-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-hrdb}
+      POSTGRES_USER: ${POSTGRES_USER:-hruser}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-hrpass_change_in_prod}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./data/seeds/init.sql:/docker-entrypoint-initdb.d/01_schema.sql:ro
+      - ./data/seeds/seed_employees.sql:/docker-entrypoint-initdb.d/02_seed.sql:ro
+    ports:
+      - "5432:5432"
+    networks:
+      - hr-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-hruser} -d ${POSTGRES_DB:-hrdb}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    logging: *default-logging
+
+  # ─── Vector Store ──────────────────────────────────
+  chromadb:
+    image: chromadb/chroma:0.5.0
+    container_name: hr-chromadb
+    restart: unless-stopped
+    environment:
+      CHROMA_SERVER_AUTH_CREDENTIALS_PROVIDER: ""
+      ANONYMIZED_TELEMETRY: "false"
+    volumes:
+      - chroma_data:/chroma/chroma
+    ports:
+      - "8002:8000"
+    networks:
+      - hr-net
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8000/api/v1/heartbeat || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    logging: *default-logging
+
+  # ─── MCP Tool Server ───────────────────────────────
+  mcp-server:
+    build:
+      context: ./backend
+      dockerfile: ../infra/docker/Dockerfile.mcp
+      target: production
+    container_name: hr-mcp-server
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-hruser}:${POSTGRES_PASSWORD:-hrpass_change_in_prod}@postgres:5432/${POSTGRES_DB:-hrdb}
+      CHROMA_HOST: chromadb
+      CHROMA_PORT: "8000"
+      MCP_HOST: "0.0.0.0"
+      MCP_PORT: "8001"
+    volumes:
+      - bge_models:/app/models
+    ports:
+      - "8001:8001"
+    networks:
+      - hr-net
+    depends_on:
+      postgres:
+        condition: service_healthy
+      chromadb:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8001/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    logging: *default-logging
+
+  # ─── Backend API + Agent ───────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: ../infra/docker/Dockerfile.backend
+      target: production
+    container_name: hr-backend
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-hruser}:${POSTGRES_PASSWORD:-hrpass_change_in_prod}@postgres:5432/${POSTGRES_DB:-hrdb}
+      CHROMA_HOST: chromadb
+      CHROMA_PORT: "8000"
+      MCP_SERVER_URL: http://mcp-server:8001
+      LLM_BASE_URL: ${LLM_BASE_URL:-http://localhost:4000/v1}
+      LLM_API_KEY: ${LLM_API_KEY:-your-api-key-here}
+      LLM_MODEL: ${LLM_MODEL:-gemini-3.1-flash-lite}
+      SECRET_KEY: ${SECRET_KEY:-dev_secret_change_in_prod_min_32_chars}
+      ENVIRONMENT: ${ENVIRONMENT:-production}
+    volumes:
+      - bge_models:/app/models
+      - ./data/handbook:/app/data/handbook:ro
+    ports:
+      - "8000:8000"
+    networks:
+      - hr-net
+    depends_on:
+      postgres:
+        condition: service_healthy
+      chromadb:
+        condition: service_healthy
+      mcp-server:
+        condition: service_healthy
+    entrypoint: ["/bin/bash", "/app/infra/scripts/backend-entrypoint.sh"]
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8000/health || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 60s  # Allow time for RAG indexing on first run
+    logging: *default-logging
+
+  # ─── Frontend ──────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: ../infra/docker/Dockerfile.frontend
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:8000}
+    container_name: hr-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    networks:
+      - hr-net
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:80 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    logging: *default-logging
+
+  # ─── Nginx Reverse Proxy ───────────────────────────
+  nginx:
+    image: nginx:1.25-alpine
+    container_name: hr-nginx
+    restart: unless-stopped
+    volumes:
+      - ./infra/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./infra/nginx/conf.d:/etc/nginx/conf.d:ro
+    ports:
+      - "80:80"
+    networks:
+      - hr-net
+    depends_on:
+      - frontend
+      - backend
+    logging: *default-logging

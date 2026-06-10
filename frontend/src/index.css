@@ -1,0 +1,59 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    font-family: 'IBM Plex Sans Arabic', 'Segoe UI', system-ui, sans-serif;
+  }
+
+  /* Arabic RTL typography */
+  [dir="rtl"] {
+    font-family: 'IBM Plex Sans Arabic', 'Noto Sans Arabic', 'Segoe UI', system-ui, sans-serif;
+    letter-spacing: 0;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  html, body, #root {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+  }
+
+  /* Smooth scrolling */
+  html {
+    scroll-behavior: smooth;
+  }
+
+  /* Scrollbar styling */
+  ::-webkit-scrollbar {
+    width: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.2);
+  }
+}
+
+/* Prose overrides for dark chat bubbles */
+.prose-invert table {
+  @apply w-full text-xs;
+}
+.prose-invert th {
+  @apply bg-white/10 px-3 py-1.5 text-start font-semibold;
+}
+.prose-invert td {
+  @apply border-t border-white/5 px-3 py-1.5;
+}
+.prose-invert code {
+  @apply bg-white/10 rounded px-1 py-0.5 text-xs;
+}

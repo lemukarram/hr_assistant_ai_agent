@@ -1,0 +1,47 @@
+# ── Backend Dockerfile ─────────────────────────────────────────────────────
+# Build context: ./backend  (set in docker-compose.yml)
+# ──────────────────────────────────────────────────────────────────────────
+
+FROM python:3.11-slim AS base
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc g++ curl git postgresql-client \
+    poppler-utils \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Dependencies layer (cached unless requirements.txt changes)
+COPY requirements.txt .
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
+
+# NLTK corpora for Arabic processing
+RUN python -c "import nltk; nltk.download('punkt'); nltk.download('stopwords')"
+
+# ── Development (hot-reload, source bind-mounted) ──────────────────────────
+FROM base AS development
+
+EXPOSE 8000
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+
+# ── Production ─────────────────────────────────────────────────────────────
+FROM base AS production
+
+# Copy source code (build context is ./backend)
+COPY . .
+
+# Volume mount points
+RUN mkdir -p /app/models /app/data/handbook
+
+# Non-root user
+RUN useradd -m -u 1001 appuser && chown -R appuser:appuser /app
+USER appuser
+
+EXPOSE 8000
+
+HEALTHCHECK --interval=15s --timeout=10s --retries=5 --start-period=60s \
+    CMD curl -sf http://localhost:8000/health || exit 1
+
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", \
+     "--workers", "1", "--no-access-log"]
